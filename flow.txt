@@ -1,0 +1,131 @@
+#include "ns3/flow-monitor-helper.h"
+FlowMonitorHelper flowmon;
+
+Ptr<FlowMonitor> monitor = flowmon.InstallAll();
+
+
+void PrintFlowStats (FlowMonitorHelper::FlowStatsContainer flowStats)
+{
+  for (FlowMonitorHelper::FlowStatsContainer::Iterator i = flowStats.Begin ();
+       i != flowStats.End (); ++i)
+    {
+      Ipv4FlowClassifier::FiveTuple t = i->first;
+      std::cout << "Flow ID: " << t.sourceAddress << " -> " << t.destinationAddress << std::endl;
+      std::cout << "  Tx Bytes:   " << i->second.txBytes << std::endl;
+      std::cout << "  Rx Bytes:   " << i->second.rxBytes << std::endl;
+      std::cout << "  Tx Packets: " << i->second.txPackets << std::endl;
+      std::cout << "  Rx Packets: " << i->second.rxPackets << std::endl;
+      std::cout << "  Lost Packets: " << i->second.lostPackets << std::endl;
+      std::cout << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds()-i->second.timeFirstTxPacket.GetSeconds())/1000/1000 << " Mbps"<< std::endl;
+    }
+}
+
+monitor->CheckForLostPackets ();
+FlowMonitorHelper::FlowStatsContainer stats = monitor->GetFlowStats ();
+PrintFlowStats (stats);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/flow-monitor-helper.h"
+
+using namespace ns3;
+
+NS_LOG_COMPONENT_DEFINE ("FlowMonitorExample");
+
+void PrintFlowStats (FlowMonitorHelper::FlowStatsContainer flowStats)
+{
+  for (FlowMonitorHelper::FlowStatsContainer::Iterator i = flowStats.Begin ();
+       i != flowStats.End (); ++i)
+    {
+      Ipv4FlowClassifier::FiveTuple t = i->first;
+      std::cout << "Flow ID: " << t.sourceAddress << " -> " << t.destinationAddress << std::endl;
+      std::cout << "  Tx Bytes:   " << i->second.txBytes << std::endl;
+      std::cout << "  Rx Bytes:   " << i->second.rxBytes << std::endl;
+      std::cout << "  Tx Packets: " << i->second.txPackets << std::endl;
+      std::cout << "  Rx Packets: " << i->second.rxPackets << std::endl;
+      std::cout << "  Lost Packets: " << i->second.lostPackets << std::endl;
+      std::cout << "  Throughput: " << i->second.rxBytes * 8.0 / (i->second.timeLastRxPacket.GetSeconds()-i->second.timeFirstTxPacket.GetSeconds())/1000/1000 << " Mbps"<< std::endl;
+    }
+}
+
+int main (int argc, char *argv[])
+{
+  CommandLine cmd;
+  cmd.Parse (argc, argv);
+
+  NodeContainer nodes;
+  nodes.Create (3);
+
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+
+  NetDeviceContainer devices;
+  devices = csma.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+
+  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+
+  UdpEchoServerHelper echoServer (9);
+
+  ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (10.0));
+
+  UdpEchoClientHelper echoClient (interfaces.GetAddress (1), 9);
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (1));
+  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+
+  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
+  clientApps.Start (Seconds (2.0));
+  clientApps.Stop (Seconds (10.0));
+
+  csma.EnablePcapAll ("flow-monitor");
+
+  FlowMonitorHelper flowmon;
+  Ptr<FlowMonitor> monitor = flowmon.InstallAll();
+
+  Simulator::Stop (Seconds (11.0));
+  Simulator::Run ();
+
+  monitor->CheckForLostPackets ();
+  FlowMonitorHelper::FlowStatsContainer stats = monitor->GetFlowStats ();
+  PrintFlowStats (stats);
+
+  Simulator::Destroy ();
+  return 0;
+}
+

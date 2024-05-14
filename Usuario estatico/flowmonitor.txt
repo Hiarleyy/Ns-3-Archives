@@ -1,0 +1,16 @@
+FlowID: 1 (UDP 11.0.0.5/36412 --> 11.0.0.6/36412)
+	TX bitrate: None
+	RX bitrate: None
+	Mean Delay: 15.00 ms
+	Packet Loss Ratio: 0.00 %
+FlowID: 2 (UDP 1.0.0.2/49153 --> 7.0.0.2/1234)
+	TX bitrate: 841.68 kbit/s
+	RX bitrate: None
+	Mean Delay: None
+	Packet Loss Ratio: None
+FlowID: 3 (UDP 11.0.0.6/36412 --> 11.0.0.5/36412)
+	TX bitrate: None
+	RX bitrate: None
+	Mean Delay: 15.00 ms
+	Packet Loss Ratio: 0.00 %
+
